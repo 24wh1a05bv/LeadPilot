@@ -1,0 +1,74 @@
+{
+  "companies": {
+    "Acme Corp": {
+      "industry": "Software",
+      "employee_count": 420,
+      "revenue_estimate": "$50M-$100M",
+      "tech_stack": ["AWS", "Kubernetes", "Python", "PostgreSQL"],
+      "buying_signal": "recently hired VP Engineering"
+    },
+    "Globex Inc": {
+      "industry": "Manufacturing",
+      "employee_count": 12000,
+      "revenue_estimate": "$1B-$5B",
+      "tech_stack": ["SAP", "Oracle", "Java"],
+      "buying_signal": "digital transformation initiative announced"
+    },
+    "Initech": {
+      "industry": "Software",
+      "employee_count": 85,
+      "revenue_estimate": "$10M-$50M",
+      "tech_stack": ["React", "Node.js", "MongoDB"],
+      "buying_signal": "expanding sales team"
+    },
+    "Umbrella Corp": {
+      "industry": "Pharmaceuticals",
+      "employee_count": 5000,
+      "revenue_estimate": "$500M-$1B",
+      "tech_stack": ["Salesforce", "SAP", "Tableau"],
+      "buying_signal": "new product launch Q3"
+    },
+    "Stark Industries": {
+      "industry": "Defense",
+      "employee_count": 2500,
+      "revenue_estimate": "$100M-$500M",
+      "tech_stack": ["Custom ERP", "MATLAB", "Simulink"],
+      "buying_signal": "R&D budget increased 40%"
+    },
+    "Wayne Enterprises": {
+      "industry": "Technology",
+      "employee_count": 15000,
+      "revenue_estimate": "$5B-$10B",
+      "tech_stack": ["Azure", ".NET", "SQL Server", "Dynamics 365"],
+      "buying_signal": "CRM system upgrade planned"
+    },
+    "Cyberdyne Systems": {
+      "industry": "Technology",
+      "employee_count": 320,
+      "revenue_estimate": "$50M-$100M",
+      "tech_stack": ["AI/ML", "Python", "TensorFlow", "GCP"],
+      "buying_signal": "series C funding secured"
+    },
+    "Hooli": {
+      "industry": "Software",
+      "employee_count": 800,
+      "revenue_estimate": "$100M-$500M",
+      "tech_stack": ["Go", "Kubernetes", "Bigtable", "Spanner"],
+      "buying_signal": "aggressive hiring in sales"
+    },
+    "Pied Piper": {
+      "industry": "Software",
+      "employee_count": 12,
+      "revenue_estimate": "<$5M",
+      "tech_stack": ["Python", "React", "AWS"],
+      "buying_signal": "breakthrough compression algorithm"
+    },
+    "Massive Dynamic": {
+      "industry": "Science",
+      "employee_count": 750,
+      "revenue_estimate": "$100M-$500M",
+      "tech_stack": ["Python", "R", "Custom Research Tools"],
+      "buying_signal": "government research grant awarded"
+    }
+  }
+}

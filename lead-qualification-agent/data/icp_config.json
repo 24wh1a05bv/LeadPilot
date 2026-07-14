@@ -1,0 +1,50 @@
+{
+  "icp_criteria": {
+    "target_industries": ["Software", "Technology", "Science"],
+    "min_employee_count": 50,
+    "max_employee_count": 5000,
+    "target_roles": ["CTO", "VP Engineering", "Director of Engineering", "Head of Sales", "CEO"]
+  },
+  "scoring": {
+    "industry_match_weight": 30,
+    "company_size_weight": 25,
+    "role_match_weight": 25,
+    "buying_signal_weight": 20
+  },
+  "industry_scores": {
+    "Software": 30,
+    "Technology": 25,
+    "Science": 20,
+    "Defense": 10,
+    "Manufacturing": 5,
+    "Pharmaceuticals": 10,
+    "other": 0
+  },
+  "company_size_scores": [
+    {"min": 0, "max": 49, "score": 0},
+    {"min": 50, "max": 199, "score": 15},
+    {"min": 200, "max": 999, "score": 25},
+    {"min": 1000, "max": 5000, "score": 20},
+    {"min": 5001, "max": 999999999, "score": 10}
+  ],
+  "role_scores": {
+    "CTO": 25,
+    "VP Engineering": 25,
+    "Director of Engineering": 25,
+    "Head of Sales": 20,
+    "Sales Director": 20,
+    "CEO": 15,
+    "VP Sales": 25,
+    "other": 5
+  },
+  "buying_signal_scores": {
+    "strong": 20,
+    "medium": 12,
+    "weak": 5,
+    "none": 0
+  },
+  "thresholds": {
+    "hot_min": 80,
+    "nurture_min": 50
+  }
+}
