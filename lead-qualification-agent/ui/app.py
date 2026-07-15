@@ -1,16 +1,20 @@
 """Streamlit UI for the Lead Qualification Agent.
 
-Three views:
-1. Inbox - table of leads with score + classification
-2. Lead detail - full details with ICP comparison, reasoning, approval gate
-3. Audit log - searchable timeline history
+Four views:
+1. Dashboard - analytics charts and lead distribution
+2. Inbox - table of leads with CSV import and single form
+3. Lead detail - full details with ICP comparison, reasoning, approval gate
+4. Audit log - searchable timeline history
 """
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import sys
 import os
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -111,6 +115,85 @@ def process_lead(lead_dict: dict) -> dict:
     return result
 
 
+# ---- CSV import ----
+
+def render_csv_import() -> None:
+    with st.expander("Bulk Import from CSV", expanded=False):
+        st.write("Upload a CSV file with columns: `name`, `email`, `company` (required), `role`, `message` (optional).")
+
+        uploaded_file = st.file_uploader("Choose a CSV file", type=["csv"], key="csv_upload")
+
+        if uploaded_file is not None:
+            try:
+                content = uploaded_file.read().decode("utf-8")
+                reader = csv.DictReader(io.StringIO(content))
+                rows = list(reader)
+
+                if not rows:
+                    st.error("CSV file is empty.")
+                    return
+
+                required_cols = {"name", "email", "company"}
+                actual_cols = set(reader.fieldnames or [])
+                missing = required_cols - actual_cols
+                if missing:
+                    st.error(f"Missing required columns: {', '.join(missing)}")
+                    return
+
+                st.write(f"Found **{len(rows)}** leads. Preview:")
+                st.dataframe(rows[:5], use_container_width=True)
+                if len(rows) > 5:
+                    st.caption(f"Showing first 5 of {len(rows)} rows")
+
+                if st.button("Import & Process All Leads", type="primary", use_container_width=True):
+                    progress = st.progress(0, text="Processing leads...")
+                    imported = 0
+                    errors = 0
+
+                    for i, row in enumerate(rows):
+                        name = (row.get("name") or "").strip()
+                        email = (row.get("email") or "").strip()
+                        company = (row.get("company") or "").strip()
+
+                        if not name or not email or not company:
+                            errors += 1
+                            continue
+
+                        # Skip duplicates
+                        if email in st.session_state.results:
+                            continue
+
+                        lead_data = {
+                            "name": name,
+                            "email": email,
+                            "company": company,
+                            "role": (row.get("role") or "").strip() or None,
+                            "message": (row.get("message") or "").strip(),
+                        }
+
+                        try:
+                            result = process_lead(lead_data)
+                            st.session_state.leads.append(lead_data)
+                            st.session_state.results[email] = result
+                            imported += 1
+                        except Exception as e:
+                            errors += 1
+
+                        progress.progress(
+                            (i + 1) / len(rows),
+                            text=f"Processing {i + 1}/{len(rows)}...",
+                        )
+
+                    progress.empty()
+                    st.success(f"Imported **{imported}** leads. Errors: {errors}")
+                    if imported > 0:
+                        st.session_state.current_index = len(st.session_state.leads) - imported
+                        st.rerun()
+
+            except Exception as e:
+                st.error(f"Error reading CSV: {e}")
+
+
 # ---- Lead form ----
 
 def render_lead_form() -> None:
@@ -153,9 +236,21 @@ def render_lead_form() -> None:
 def render_inbox() -> None:
     st.subheader("Inbox")
 
+    render_csv_import()
+    render_lead_form()
+
     if not st.session_state.leads:
-        st.info("No leads yet. Add a lead using the form above.")
+        st.info("No leads yet. Add a lead using the form above or import a CSV.")
         return
+
+    # Filter controls
+    col1, col2, col3 = st.columns([2, 2, 1])
+    with col1:
+        search = st.text_input("Search by name or company", placeholder="Type to filter...", key="inbox_search")
+    with col2:
+        filter_class = st.selectbox("Filter by classification", ["All", "HOT", "NURTURE", "DISQUALIFY", "PENDING"], key="inbox_filter")
+    with col3:
+        sort_by = st.selectbox("Sort by", ["Score (high)", "Score (low)", "Name"], key="inbox_sort")
 
     table_data = []
     for i, lead_data in enumerate(st.session_state.leads):
@@ -165,7 +260,7 @@ def render_inbox() -> None:
         enrichment = result.get("enrichment", {})
 
         label = classification.get("label", "PENDING")
-        total_score = score.get("total", "N/A") if score else "N/A"
+        total_score = score.get("total", 0) if score else 0
         industry = _safe(enrichment.get("industry")) if enrichment else "Unknown"
 
         if label == "HOT":
@@ -178,7 +273,7 @@ def render_inbox() -> None:
             badge = "PENDING"
 
         table_data.append({
-            "": i + 1,
+            "idx": i,
             "Name": lead_data["name"],
             "Company": lead_data["company"],
             "Industry": industry,
@@ -186,16 +281,157 @@ def render_inbox() -> None:
             "Status": badge,
         })
 
+    # Apply filters
+    if search:
+        search_lower = search.lower()
+        table_data = [r for r in table_data if search_lower in r["Name"].lower() or search_lower in r["Company"].lower()]
+
+    if filter_class != "All":
+        table_data = [r for r in table_data if r["Status"] == filter_class]
+
+    # Apply sorting
+    if sort_by == "Score (high)":
+        table_data.sort(key=lambda x: x["Score"], reverse=True)
+    elif sort_by == "Score (low)":
+        table_data.sort(key=lambda x: x["Score"])
+    elif sort_by == "Name":
+        table_data.sort(key=lambda x: x["Name"])
+
+    if not table_data:
+        st.info("No leads match the current filters.")
+        return
+
+    display_data = [{"#": i + 1, "Name": r["Name"], "Company": r["Company"], "Industry": r["Industry"], "Score": r["Score"], "Status": r["Status"]} for i, r in enumerate(table_data)]
+
     st.data_editor(
-        table_data,
+        display_data,
         use_container_width=True,
         hide_index=True,
         column_config={
-            "": st.column_config.NumberColumn(width=40),
+            "#": st.column_config.NumberColumn(width=40),
             "Status": st.column_config.TextColumn(width=130),
         },
         disabled=True,
     )
+
+
+# ---- Dashboard view ----
+
+def render_dashboard() -> None:
+    st.subheader("Dashboard")
+
+    if not st.session_state.leads:
+        st.info("No data yet. Process some leads to see analytics.")
+        return
+
+    leads = st.session_state.leads
+    results = st.session_state.results
+
+    # ---- Summary metrics ----
+    classifications = []
+    scores = []
+    confidences = []
+    industries = []
+    for lead in leads:
+        r = results.get(lead["email"], {})
+        cls = r.get("classification", {})
+        sc = r.get("score")
+        enr = r.get("enrichment", {})
+        classifications.append(cls.get("label", "PENDING"))
+        if sc:
+            scores.append(sc.get("total", 0))
+        confidences.append(_confidence_pct(r))
+        industries.append(_safe(enr.get("industry")) if enr else "Unknown")
+
+    total = len(leads)
+    hot = classifications.count("HOT")
+    nurture = classifications.count("NURTURE")
+    disqualify = classifications.count("DISQUALIFY")
+    pending = classifications.count("PENDING")
+    avg_score = sum(scores) / len(scores) if scores else 0
+    avg_conf = sum(confidences) / len(confidences) if confidences else 0
+
+    # ---- Top row metrics ----
+    c1, c2, c3, c4, c5 = st.columns(5)
+    with c1:
+        st.metric("Total Leads", total)
+    with c2:
+        st.metric("HOT", hot, delta=None)
+    with c3:
+        st.metric("NURTURE", nurture, delta=None)
+    with c4:
+        st.metric("DISQUALIFY", disqualify, delta=None)
+    with c5:
+        st.metric("Avg Score", f"{avg_score:.0f}")
+
+    st.divider()
+
+    # ---- Charts row ----
+    col_left, col_right = st.columns(2)
+
+    with col_left:
+        st.markdown("### Classification Distribution")
+        chart_data = {"HOT": hot, "NURTURE": nurture, "DISQUALIFY": disqualify}
+        if pending:
+            chart_data["PENDING"] = pending
+        st.bar_chart(chart_data, color="#ff4b4b")
+
+    with col_right:
+        st.markdown("### Score Distribution")
+        if scores:
+            score_buckets = {"0-25": 0, "26-50": 0, "51-75": 0, "76-100": 0}
+            for s in scores:
+                if s <= 25:
+                    score_buckets["0-25"] += 1
+                elif s <= 50:
+                    score_buckets["26-50"] += 1
+                elif s <= 75:
+                    score_buckets["51-75"] += 1
+                else:
+                    score_buckets["76-100"] += 1
+            st.bar_chart(score_buckets, color="#00c04b")
+        else:
+            st.info("No scores available")
+
+    st.divider()
+
+    # ---- Second row ----
+    col_ind, col_conf = st.columns(2)
+
+    with col_ind:
+        st.markdown("### Industry Breakdown")
+        industry_counts = Counter(industries)
+        if industry_counts:
+            st.bar_chart(dict(industry_counts.most_common(10)), color="#1c83e1")
+
+    with col_conf:
+        st.markdown("### Confidence Levels")
+        conf_labels = [_confidence_label(c) for c in confidences]
+        conf_counts = Counter(conf_labels)
+        if conf_counts:
+            st.bar_chart(dict(conf_counts), color="#ffc107")
+
+    st.divider()
+
+    # ---- Lead list ----
+    st.markdown("### All Leads")
+
+    table_data = []
+    for i, lead in enumerate(leads):
+        r = results.get(lead["email"], {})
+        cls = r.get("classification", {})
+        sc = r.get("score")
+        enr = r.get("enrichment", {})
+        table_data.append({
+            "Name": lead["name"],
+            "Company": lead["company"],
+            "Score": sc.get("total", 0) if sc else 0,
+            "Classification": cls.get("label", "PENDING"),
+            "Industry": _safe(enr.get("industry")) if enr else "Unknown",
+            "Confidence": f"{_confidence_pct(r)}%",
+        })
+
+    st.dataframe(table_data, use_container_width=True, hide_index=True)
 
 
 # ---- Lead detail view ----
@@ -265,22 +501,17 @@ def render_lead_detail() -> None:
     st.markdown("### Ideal Customer Profile Comparison")
 
     if score:
-        # Industry
         icp_industries = icp_criteria["target_industries"]
         actual_industry = score.get("industry_actual")
         ind_status, ind_detail = _icp_status(actual_industry, expected_list=icp_industries)
-        icon = "pass" if ind_status == "pass" else ("warn" if ind_status == "warn" else "fail")
 
-        # Company Size
         actual_emp = score.get("employee_count_actual")
         emp_status, emp_detail = _icp_status(actual_emp, expected_range=(icp_criteria["min_employee_count"], icp_criteria["max_employee_count"]))
 
-        # Role
         icp_roles = icp_criteria["target_roles"]
         actual_role = score.get("role_actual")
         role_status, role_detail = _icp_status(actual_role, expected_list=icp_roles)
 
-        # Buying Signal
         actual_bs = score.get("buying_signal_level")
         bs_status = "pass" if actual_bs in ("strong", "medium") else ("warn" if actual_bs == "weak" else "fail")
         bs_detail = {"strong": "Strong intent", "medium": "Moderate interest", "weak": "Weak signal", "none": "No signal", None: "Unknown"}.get(actual_bs, "Unknown")
@@ -315,13 +546,6 @@ def render_lead_detail() -> None:
 
     if score:
         def _score_row(label: str, val: int, max_val: int, actual: str = "Unknown"):
-            icon = _score_icon(val, max_val)
-            if icon == "strong":
-                indicator = "Strong"
-            elif icon == "weak":
-                indicator = "Partial"
-            else:
-                indicator = "None"
             c1, c2, c3 = st.columns([3, 2, 1])
             with c1:
                 st.write(f"**{label}**")
@@ -358,7 +582,6 @@ def render_lead_detail() -> None:
         icp_industries = icp_criteria["target_industries"]
         icp_roles = icp_criteria["target_roles"]
 
-        # Industry
         if score.get("industry_match", 0) >= 20:
             st.write(f"- Strong industry match ({_safe(score.get('industry_actual'))}) +{score['industry_match']}")
         elif score.get("industry_match", 0) > 0:
@@ -366,7 +589,6 @@ def render_lead_detail() -> None:
         else:
             st.write(f"- Company information unavailable or non-target industry")
 
-        # Company Size
         if score.get("company_size", 0) >= 20:
             st.write(f"- Company size within target range ({_safe(score.get('employee_count_actual'))} employees) +{score['company_size']}")
         elif score.get("company_size", 0) > 0:
@@ -380,7 +602,6 @@ def render_lead_detail() -> None:
             else:
                 st.write(f"- Company too large ({emp} employees)")
 
-        # Role
         if score.get("role_match", 0) >= 20:
             st.write(f"- Role matches target ({_safe(score.get('role_actual'))}) +{score['role_match']}")
         elif score.get("role_match", 0) > 0:
@@ -388,7 +609,6 @@ def render_lead_detail() -> None:
         else:
             st.write(f"- Role is outside target profile ({_safe(score.get('role_actual'))})")
 
-        # Buying Signal
         bs_level = score.get("buying_signal_level")
         if bs_level in ("strong", "medium"):
             st.write(f"- Buying intent detected ({bs_level}) +{score['buying_signal']}")
@@ -485,7 +705,6 @@ def render_lead_detail() -> None:
                 for fact in grounded_on:
                     st.write(f"- {fact}")
 
-        # Approval controls
         st.markdown("### Approval Required")
         st.caption("No email will be sent until you approve.")
 
@@ -670,10 +889,12 @@ def main() -> None:
 
     init_session_state()
 
-    tab_inbox, tab_detail, tab_audit = st.tabs(["Inbox", "Lead Detail", "Audit Log"])
+    tab_dashboard, tab_inbox, tab_detail, tab_audit = st.tabs(["Dashboard", "Inbox", "Lead Detail", "Audit Log"])
+
+    with tab_dashboard:
+        render_dashboard()
 
     with tab_inbox:
-        render_lead_form()
         render_inbox()
 
     with tab_detail:
