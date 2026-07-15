@@ -15,11 +15,24 @@ import json
 import sys
 import os
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 import streamlit as st
+
+IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def _format_ist(ts: str) -> str:
+    try:
+        dt = datetime.fromisoformat(ts)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=IST)
+        dt = dt.astimezone(IST)
+        return dt.strftime("%I:%M:%S %p IST")
+    except Exception:
+        return ts[:19]
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -743,11 +756,7 @@ def render_lead_detail() -> None:
     if audit_trail:
         for entry in audit_trail:
             ts = entry.get("timestamp", "")
-            try:
-                dt = datetime.fromisoformat(ts)
-                time_str = dt.strftime("%I:%M %p")
-            except Exception:
-                time_str = ts[:16]
+            time_str = _format_ist(ts)
 
             node = entry.get("node", "")
             node_labels = {
@@ -841,11 +850,7 @@ def render_audit_view() -> None:
     for entry in filtered:
         with st.container():
             ts = entry.get("timestamp", "")
-            try:
-                dt = datetime.fromisoformat(ts)
-                time_str = dt.strftime("%I:%M %p")
-            except Exception:
-                time_str = ts[:16]
+            time_str = _format_ist(ts)
 
             cols = st.columns([1, 2, 1.5, 2, 1.5])
             with cols[0]:

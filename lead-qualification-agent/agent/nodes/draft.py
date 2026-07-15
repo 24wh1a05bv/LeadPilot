@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-
 from agent.state import AgentState, EmailDraft
+from agent.timestamps import next_timestamp
 from agent.llm import LLM
 
 
@@ -101,7 +100,7 @@ def draft_node(state: AgentState) -> dict:
 
     audit_entry = {
         "node": "draft",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": next_timestamp(state),
         "input": {
             "lead_name": lead.name,
             "lead_company": lead.company,

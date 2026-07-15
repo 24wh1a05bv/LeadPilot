@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
 from pathlib import Path
 
 from agent.state import AgentState, Classification
+from agent.timestamps import next_timestamp
 
 
 def _load_icp_config() -> dict:
@@ -68,7 +68,7 @@ def classify_node(state: AgentState) -> dict:
 
     audit_entry = {
         "node": "classify",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": next_timestamp(state),
         "input": {"score_total": score.total if score else None},
         "output": classification.model_dump(),
     }

@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
 from pathlib import Path
 
 from agent.state import AgentState, ScoreBreakdown
+from agent.timestamps import next_timestamp
 from agent.llm import LLM
 from guardrails.prompt_injection import check_injection
 
@@ -123,7 +123,7 @@ def score_node(state: AgentState) -> dict:
 
     audit_entry = {
         "node": "score",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": next_timestamp(state),
         "input": {
             "industry": industry,
             "employee_count": employee_count,

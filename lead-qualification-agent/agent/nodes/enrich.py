@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-
 from agent.state import AgentState, Enrichment
+from agent.timestamps import next_timestamp
 from tools.enrichment_lookup import enrichment_lookup
 
 
@@ -33,7 +32,7 @@ def enrich_node(state: AgentState) -> dict:
 
     audit_entry = {
         "node": "enrich",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": next_timestamp(state),
         "input": {"company": lead.company},
         "output": enrichment.model_dump(),
     }

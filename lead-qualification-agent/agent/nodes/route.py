@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Literal
 
 from agent.state import AgentState
+from agent.timestamps import next_timestamp
 from tools.crm_write import crm_write
 
 
@@ -50,7 +50,7 @@ def route_node(state: AgentState) -> dict:
 
     audit_entry = {
         "node": "route",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": next_timestamp(state),
         "input": {"classification": decision, "reason": reason},
         "output": {"decision": decision, "routed_to": "draft" if decision == "HOT" else decision.lower()},
     }
