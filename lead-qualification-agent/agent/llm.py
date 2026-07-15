@@ -141,6 +141,16 @@ class LLM:
 
         # Buying signal analysis
         if "buying" in system.lower() or "signal" in system.lower():
+            # Check enrichment buying signal first
+            if "enrichment buying signal:" in prompt_lower:
+                signal_line = [l for l in prompt.split("\n") if "enrichment buying signal:" in l.lower()]
+                if signal_line:
+                    signal_text = signal_line[0].split(":", 1)[1].strip().lower()
+                    if any(w in signal_text for w in ("hiring", "expanding", "growth", "funding", "series")):
+                        return "strong"
+                    elif any(w in signal_text for w in ("upgrade", "planned", "initiative", "launch")):
+                        return "medium"
+
             if "hiring" in prompt_lower or "expand" in prompt_lower or "growth" in prompt_lower:
                 return "strong"
             elif "upgrade" in prompt_lower or "planned" in prompt_lower or "initiative" in prompt_lower:
@@ -152,20 +162,42 @@ class LLM:
 
         # Email drafting
         if "draft" in system.lower() or "email" in system.lower():
-            # Extract company name from prompt
             company = "your company"
+            lead_name = ""
+            lead_role = ""
+            enrichment_lines = []
+
             for line in prompt.split("\n"):
-                if "company:" in line.lower():
+                lower = line.lower()
+                if lower.startswith("lead name:"):
+                    lead_name = line.split(":", 1)[1].strip()
+                elif lower.startswith("lead role:"):
+                    lead_role = line.split(":", 1)[1].strip()
+                elif lower.startswith("lead company:"):
                     company = line.split(":", 1)[1].strip()
-                    break
+                elif lower.startswith("- industry:"):
+                    enrichment_lines.append(f"your work in {line.split(':', 1)[1].strip()}")
+                elif lower.startswith("- company size:"):
+                    enrichment_lines.append(f"your team of {line.split(':', 1)[1].strip()}")
+                elif lower.startswith("- buying signal:"):
+                    enrichment_lines.append(f"your {line.split(':', 1)[1].strip()}")
+                elif lower.startswith("- tech stack:"):
+                    enrichment_lines.append(f"your {line.split(':', 1)[1].strip()} stack")
+
+            greeting = f"Hi {lead_name}," if lead_name else "Hi there,"
+            role_ref = f" as {lead_role}" if lead_role else ""
+            fact_line = ", ".join(enrichment_lines[:2]) if enrichment_lines else "your recent work"
+            extra_line = ""
+            if len(enrichment_lines) > 2:
+                extra_line = f"\nI also noticed {enrichment_lines[2]}. "
 
             return (
-                f"Subject: Excited to connect with {company}\n\n"
-                f"Hi there,\n\n"
-                f"I came across {company} and was impressed by your recent work. "
-                f"We help companies like yours streamline their sales operations "
-                f"and would love to explore how we can support your team.\n\n"
-                f"Would you be open to a brief chat next week?\n\n"
+                f"{greeting}\n\n"
+                f"I noticed you{role_ref} at {company} and was particularly impressed by {fact_line}."
+                f"{extra_line}"
+                f"We help companies like {company} streamline their sales operations "
+                f"and I believe there's a strong fit for what you're building.\n\n"
+                f"Would you be open to a 15-minute call next week to explore how we can help?\n\n"
                 f"Best regards,\nSales Team"
             )
 

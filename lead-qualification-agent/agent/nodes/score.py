@@ -115,6 +115,10 @@ def score_node(state: AgentState) -> dict:
         role_match=role_match,
         buying_signal=buying_signal,
         total=total,
+        buying_signal_level=buying_signal_level,
+        industry_actual=industry if enrichment and enrichment.industry else None,
+        employee_count_actual=employee_count,
+        role_actual=lead.role,
     )
 
     audit_entry = {

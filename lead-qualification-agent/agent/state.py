@@ -34,6 +34,10 @@ class ScoreBreakdown(BaseModel):
     role_match: int = 0
     buying_signal: int = 0
     total: int = 0
+    buying_signal_level: str | None = None
+    industry_actual: str | None = None
+    employee_count_actual: int | None = None
+    role_actual: str | None = None
 
 
 class Classification(BaseModel):
