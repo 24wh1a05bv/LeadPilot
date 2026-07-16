@@ -14,6 +14,7 @@ def route_node(state: AgentState) -> dict:
 
     HOT leads proceed to the draft node.
     NURTURE leads are enrolled in a nurture sequence.
+    MANUAL_REVIEW leads are flagged for human review.
     DISQUALIFY leads are archived.
 
     Args:
@@ -33,6 +34,15 @@ def route_node(state: AgentState) -> dict:
         crm_write(
             lead_id=lead.email,
             status="nurture",
+            reason=reason,
+            lead_name=lead.name,
+            lead_email=lead.email,
+            lead_company=lead.company,
+        )
+    elif decision == "MANUAL_REVIEW":
+        crm_write(
+            lead_id=lead.email,
+            status="manual_review",
             reason=reason,
             lead_name=lead.name,
             lead_email=lead.email,
@@ -60,7 +70,7 @@ def route_node(state: AgentState) -> dict:
     }
 
 
-def route_decision(state: AgentState) -> Literal["draft", "enroll_sequence", "archive"]:
+def route_decision(state: AgentState) -> Literal["draft", "enroll_sequence", "manual_review", "archive"]:
     """Conditional edge function - determines which branch to take.
 
     Args:
@@ -77,5 +87,7 @@ def route_decision(state: AgentState) -> Literal["draft", "enroll_sequence", "ar
         return "draft"
     elif label == "NURTURE":
         return "enroll_sequence"
+    elif label == "MANUAL_REVIEW":
+        return "manual_review"
     else:
         return "archive"

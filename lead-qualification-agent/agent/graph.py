@@ -3,6 +3,7 @@
 Pipeline: START -> enrich -> score -> classify -> route -> [draft] -> [human_gate] -> END
                                     |                    |
                                     +-> NURTURE -> enroll_sequence -> END
+                                    +-> MANUAL_REVIEW -> manual_review -> END
                                     +-> DISQUALIFY -> archive -> END
 """
 
@@ -50,6 +51,7 @@ def _create_langgraph():
     workflow.add_node("route", route_node)
     workflow.add_node("draft", draft_node)
     workflow.add_node("enroll_sequence", _enroll_sequence_node)
+    workflow.add_node("manual_review", _manual_review_node)
     workflow.add_node("archive", _archive_node)
     workflow.add_node("human_gate", _human_gate_node)
     workflow.add_node("send_email", _send_email_node)
@@ -67,6 +69,7 @@ def _create_langgraph():
         {
             "draft": "draft",
             "enroll_sequence": "enroll_sequence",
+            "manual_review": "manual_review",
             "archive": "archive",
         }
     )
@@ -76,6 +79,7 @@ def _create_langgraph():
 
     # Terminal nodes
     workflow.add_edge("enroll_sequence", END)
+    workflow.add_edge("manual_review", END)
     workflow.add_edge("archive", END)
     workflow.add_edge("send_email", END)
 
@@ -158,6 +162,8 @@ def _create_simple_pipeline():
                 # In simple mode, we just return the state for the UI to handle
             elif decision == "enroll_sequence":
                 _enroll_sequence_node(state)
+            elif decision == "manual_review":
+                _manual_review_node(state)
             else:
                 _archive_node(state)
 
@@ -180,6 +186,19 @@ def _enroll_sequence_node(state: AgentState) -> dict:
         lead_id=state.lead.email,
         status="nurture_enrolled",
         reason=state.classification.reason if state.classification else "Nurture lead",
+        lead_name=state.lead.name,
+        lead_email=state.lead.email,
+        lead_company=state.lead.company,
+    )
+    return {}
+
+
+def _manual_review_node(state: AgentState) -> dict:
+    """Flag a lead for manual review due to insufficient data."""
+    crm_write(
+        lead_id=state.lead.email,
+        status="manual_review",
+        reason=state.classification.reason if state.classification else "Needs manual review",
         lead_name=state.lead.name,
         lead_email=state.lead.email,
         lead_company=state.lead.company,
