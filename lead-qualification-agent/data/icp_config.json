@@ -31,10 +31,15 @@
     "CTO": 25,
     "VP Engineering": 25,
     "Director of Engineering": 25,
-    "Head of Sales": 20,
-    "Sales Director": 20,
-    "CEO": 15,
+    "Head of Sales": 25,
     "VP Sales": 25,
+    "CEO": 25,
+    "Sales Director": 20,
+    "Engineering Manager": 15,
+    "Sales Manager": 15,
+    "Product Manager": 10,
+    "Manager": 5,
+    "Intern": 0,
     "other": 5
   },
   "buying_signal_scores": {
