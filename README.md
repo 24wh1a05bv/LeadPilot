@@ -2,7 +2,7 @@
 
 > An autonomous AI agent that enriches, scores, classifies, and drafts personalized outreach for B2B inbound leads — with a human-in-the-loop approval gate before anything sends.
 
-**Live Demo:** [leadpilot.onrender.com](https://leadpilot.onrender.com)
+**Live Demo:** [https://leadpilot-sra8.onrender.com/](https://leadpilot-sra8.onrender.com/)
 
 ---
 
@@ -368,3 +368,7 @@ This project was built as an academic demonstration of AI agent architecture wit
 ---
 
 **Built with:** Python, LangGraph, Streamlit, Pydantic, DuckDuckGo, SQLite
+
+---
+
+**Live Deployment:** [https://leadpilot-sra8.onrender.com/](https://leadpilot-sra8.onrender.com/)
