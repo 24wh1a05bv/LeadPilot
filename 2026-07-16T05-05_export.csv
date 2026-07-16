@@ -1,0 +1,19 @@
+﻿Name,Company,#,Industry,Score,Status
+John Smith,Acme Corp,1,Software,85,HOT
+Priya Sharma,Acme Corp,2,Software,85,HOT
+Sarah Johnson,CloudScale,3,Unknown,30,DISQUALIFY
+Maria Garcia,HealthSync,4,Unknown,30,DISQUALIFY
+David Wilson,GreenByte,5,Unknown,30,DISQUALIFY
+Nina Patel,RetailFlow,6,Unknown,30,DISQUALIFY
+James Miller,Nexora,7,Unknown,30,DISQUALIFY
+Alice Chen,TechNova,8,Unknown,25,DISQUALIFY
+Daniel Scott,ACM Corp,9,technology,25,DISQUALIFY
+Olivia White,SkyForge,10,Unknown,25,DISQUALIFY
+Emily Davis,FinEdge,11,software,20,DISQUALIFY
+Arjun Rao,OpenCloud,12,Unknown,20,DISQUALIFY
+Emma Taylor,ByteBridge,13,Unknown,20,DISQUALIFY
+Kevin Brown,DataSpark,14,Unknown,10,DISQUALIFY
+Laura Kim,FutureLabs,15,technology,10,DISQUALIFY
+Michael Lee,StartupX,16,Unknown,10,DISQUALIFY
+Carlos Rivera,Unknown Enterprise,17,technology,10,DISQUALIFY
+Liam Walker,Innovexa,18,Unknown,10,DISQUALIFY
