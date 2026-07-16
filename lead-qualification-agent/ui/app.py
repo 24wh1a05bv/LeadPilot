@@ -73,11 +73,11 @@ def _confidence_pct(result: dict) -> int:
 
 
 def _confidence_label(pct: int) -> str:
-    if pct >= 75:
+    if pct >= 90:
         return "High"
-    elif pct >= 50:
+    elif pct >= 70:
         return "Medium"
-    elif pct >= 25:
+    elif pct >= 40:
         return "Low"
     return "Very Low"
 
@@ -154,11 +154,11 @@ def render_csv_import() -> None:
                     return
 
                 st.write(f"Found **{len(rows)}** leads. Preview:")
-                st.dataframe(rows[:5], use_container_width=True)
+                st.dataframe(rows[:5], width="stretch")
                 if len(rows) > 5:
                     st.caption(f"Showing first 5 of {len(rows)} rows")
 
-                if st.button("Import & Process All Leads", type="primary", use_container_width=True):
+                if st.button("Import & Process All Leads", type="primary", width="stretch"):
                     progress = st.progress(0, text="Processing leads...")
                     imported = 0
                     errors = 0
@@ -191,6 +191,9 @@ def render_csv_import() -> None:
                             imported += 1
                         except Exception as e:
                             errors += 1
+                            import traceback
+                            st.error(f"Error processing {email}: {e}")
+                            st.code(traceback.format_exc())
 
                         progress.progress(
                             (i + 1) / len(rows),
@@ -221,7 +224,7 @@ def render_lead_form() -> None:
                 email = st.text_input("Email*", placeholder="e.g. john@acme.com")
                 message = st.text_area("Message", placeholder="How did they hear about you? What are they interested in?", height=100)
 
-            submitted = st.form_submit_button("Submit Lead", type="primary", use_container_width=True)
+            submitted = st.form_submit_button("Submit Lead", type="primary", width="stretch")
 
             if submitted:
                 if not name or not email or not company:
@@ -318,7 +321,7 @@ def render_inbox() -> None:
 
     st.data_editor(
         display_data,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             "#": st.column_config.NumberColumn(width=40),
@@ -444,7 +447,7 @@ def render_dashboard() -> None:
             "Confidence": f"{_confidence_pct(r)}%",
         })
 
-    st.dataframe(table_data, use_container_width=True, hide_index=True)
+    st.dataframe(table_data, width="stretch", hide_index=True)
 
 
 # ---- Lead detail view ----
@@ -493,6 +496,14 @@ def render_lead_detail() -> None:
 
     if enrichment.get("source") and enrichment["source"] != "no match found":
         st.success(f"Data found via: {enrichment['source']}")
+        
+        # Source reliability badge
+        source_rel = enrichment.get("source_reliability", "unknown")
+        rel_colors = {"high": "green", "medium": "orange", "low": "red"}
+        rel_color = rel_colors.get(source_rel, "gray")
+        st.markdown(f"**Source Reliability:** :{rel_color}[{source_rel.upper()}]")
+        
+        # Main metrics
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("Industry", _safe(enrichment.get("industry")))
@@ -501,10 +512,36 @@ def render_lead_detail() -> None:
             st.metric("Employees", _safe(emp))
         with col3:
             st.metric("Revenue", _safe(enrichment.get("revenue_estimate")))
+        
         if enrichment.get("tech_stack"):
             st.write(f"**Tech Stack:** {', '.join(enrichment['tech_stack'])}")
         if enrichment.get("buying_signal"):
             st.write(f"**Buying Signal:** {enrichment['buying_signal']}")
+        
+        # Expandable evidence for each field
+        field_evidence = enrichment.get("field_evidence", {})
+        if field_evidence:
+            st.markdown("#### Field Evidence")
+            for field_name, evidence_data in field_evidence.items():
+                if isinstance(evidence_data, dict):
+                    evidence_text = evidence_data.get("evidence", "No evidence available")
+                    field_confidence = evidence_data.get("confidence", "unknown")
+                    field_value = evidence_data.get("value", "N/A")
+                    
+                    with st.expander(f"{field_name.replace('_', ' ').title()}: {field_value} ({field_confidence} confidence)"):
+                        st.write(f"**Value:** {field_value}")
+                        st.write(f"**Evidence:** {evidence_text}")
+                        st.write(f"**Confidence:** {field_confidence}")
+        
+        # Unknown factors
+        unknown_factors = enrichment.get("unknown_factors", [])
+        if unknown_factors:
+            st.warning(f"**Unknown factors:** {', '.join(unknown_factors)}")
+        
+        # Ambiguity warning
+        ambiguity_warning = enrichment.get("ambiguity_warning")
+        if ambiguity_warning:
+            st.info(f"**Ambiguity detected:** {ambiguity_warning}")
     else:
         st.warning("No company data found")
         st.write("Company not found in enrichment database. Scoring is based on available signals only.")
@@ -724,7 +761,7 @@ def render_lead_detail() -> None:
         col_a, col_b, col_c = st.columns([1, 1, 1])
 
         with col_a:
-            if st.button("Approve", key=f"approve_{selected_idx}", type="primary", use_container_width=True):
+            if st.button("Approve", key=f"approve_{selected_idx}", type="primary", width="stretch"):
                 _handle_approval(lead_data, result, "approve", selected_idx)
                 st.rerun()
 
@@ -736,12 +773,12 @@ def render_lead_detail() -> None:
                 key=f"edit_body_{selected_idx}",
                 label_visibility="collapsed",
             )
-            if st.button("Approve with Edit", key=f"edit_{selected_idx}", use_container_width=True):
+            if st.button("Approve with Edit", key=f"edit_{selected_idx}", width="stretch"):
                 _handle_approval(lead_data, result, "edit", selected_idx, edited_body)
                 st.rerun()
 
         with col_c:
-            if st.button("Reject", key=f"reject_{selected_idx}", use_container_width=True):
+            if st.button("Reject", key=f"reject_{selected_idx}", width="stretch"):
                 _handle_approval(lead_data, result, "reject", selected_idx)
                 st.rerun()
 
