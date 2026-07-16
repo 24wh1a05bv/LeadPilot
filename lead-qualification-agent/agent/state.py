@@ -24,7 +24,12 @@ class Enrichment(BaseModel):
     revenue_estimate: str | None = None
     tech_stack: list[str] = Field(default_factory=list)
     buying_signal: str | None = None
-    source: str = ""  # which mocked lookup matched
+    source: str = ""  # which lookup matched (mock DB or web search)
+    source_reliability: str = "high"  # "high", "medium", "low" - reliability of the source
+    confidence: str = "high"  # "high", "medium", "low" - confidence in extracted data
+    unknown_factors: list[str] = Field(default_factory=list)  # fields that couldn't be determined
+    field_evidence: dict[str, dict] = Field(default_factory=dict)  # per-field evidence from web search
+    ambiguity_warning: str | None = None  # warning for ambiguous company name matches
 
 
 class ScoreBreakdown(BaseModel):
@@ -38,11 +43,13 @@ class ScoreBreakdown(BaseModel):
     industry_actual: str | None = None
     employee_count_actual: int | None = None
     role_actual: str | None = None
+    confidence: str = "high"  # overall confidence in the score
+    unknown_factors: list[str] = Field(default_factory=list)
 
 
 class Classification(BaseModel):
     """Lead classification result."""
-    label: Literal["HOT", "NURTURE", "DISQUALIFY"]
+    label: Literal["HOT", "NURTURE", "DISQUALIFY", "MANUAL_REVIEW"]
     reason: str  # cited, references specific score factors
 
 
